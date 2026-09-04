@@ -1,79 +1,26 @@
 const { app, BrowserWindow, Tray, clipboard, ipcMain, nativeImage, screen, globalShortcut } = require("electron");
 const path = require("path");
-const fs = require("fs");
-const crypto = require("crypto");
+const ClipboardStore = require("./store");
 
 const HISTORY_DIR = path.join(app.getPath("home"), ".clipclop");
 const HISTORY_FILE = path.join(HISTORY_DIR, "history.json");
-const MAX_CLIPS = 30;
 const POLL_INTERVAL = 300;
+
+const store = new ClipboardStore({ filePath: HISTORY_FILE });
 
 let tray = null;
 let popover = null;
-let clips = [];
 let lastClipboardText = "";
 let pollTimer = null;
 
-function ensureHistoryDir() {
-  if (!fs.existsSync(HISTORY_DIR)) {
-    fs.mkdirSync(HISTORY_DIR, { recursive: true });
-  }
-}
-
-function loadClips() {
-  try {
-    ensureHistoryDir();
-    if (fs.existsSync(HISTORY_FILE)) {
-      const data = fs.readFileSync(HISTORY_FILE, "utf-8");
-      const parsed = JSON.parse(data);
-      if (Array.isArray(parsed)) {
-        clips = parsed.filter(
-          (c) => c && typeof c.id === "string" && typeof c.content === "string"
-        );
-      } else {
-        throw new Error("History data is not an array");
-      }
-    }
-  } catch (err) {
-    console.error("Failed to load clips:", err.message);
-    try {
-      if (fs.existsSync(HISTORY_FILE)) {
-        fs.copyFileSync(HISTORY_FILE, HISTORY_FILE + ".corrupt");
-      }
-    } catch (_) {}
-    clips = [];
-  }
-}
-
-function saveClips() {
-  try {
-    ensureHistoryDir();
-    const tmp = HISTORY_FILE + ".tmp";
-    fs.writeFileSync(tmp, JSON.stringify(clips, null, 2), "utf-8");
-    fs.renameSync(tmp, HISTORY_FILE);
-  } catch (err) {
-    console.error("Failed to save clips:", err.message);
-  }
-}
-
 function addClip(text) {
-  clips = clips.filter((c) => c.content !== text);
-  const clip = {
-    id: crypto.randomUUID(),
-    content: text,
-    createdAt: new Date().toISOString(),
-  };
-  clips.unshift(clip);
-  while (clips.length > MAX_CLIPS) {
-    clips.pop();
-  }
-  saveClips();
+  store.add(text);
   broadcastClips();
 }
 
 function broadcastClips() {
   if (popover && popover.webContents && !popover.isDestroyed()) {
-    popover.webContents.send("clips-updated", clips);
+    popover.webContents.send("clips-updated", store.getAll());
   }
 }
 
@@ -171,7 +118,7 @@ function togglePopover() {
       positionPopoverBelowTray();
       popover.show();
       popover.focus();
-      popover.webContents.send("clips-updated", clips);
+    popover.webContents.send("clips-updated", store.getAll());
     });
     return;
   }
@@ -181,7 +128,7 @@ function togglePopover() {
     positionPopoverBelowTray();
     popover.show();
     popover.focus();
-    popover.webContents.send("clips-updated", clips);
+    popover.webContents.send("clips-updated", store.getAll());
   }
 }
 
@@ -196,7 +143,7 @@ function setupIpc() {
     try {
       const id = args?.id;
       if (typeof id !== "string") return { success: false };
-      const clip = clips.find((c) => c.id === id);
+      const clip = store.findById(id);
       if (!clip) {
         return { success: false };
       }
@@ -213,19 +160,16 @@ function setupIpc() {
   });
 
   ipcMain.handle("get-clips", () => {
-    return clips;
+    return store.getAll();
   });
 
   ipcMain.handle("delete-clip", (_event, args) => {
     try {
       const id = args?.id;
       if (typeof id !== "string") return { success: false };
-      const idx = clips.findIndex((c) => c.id === id);
-      if (idx === -1) {
+      if (!store.deleteById(id)) {
         return { success: false };
       }
-      clips.splice(idx, 1);
-      saveClips();
       broadcastClips();
       return { success: true };
     } catch (err) {
@@ -236,8 +180,7 @@ function setupIpc() {
 
   ipcMain.handle("clear-all", () => {
     try {
-      clips = [];
-      saveClips();
+      store.clear();
       broadcastClips();
       return { success: true };
     } catch (err) {
@@ -272,7 +215,7 @@ app.whenReady().then(() => {
   });
 
   setupIpc();
-  loadClips();
+  store.load();
   startClipboardMonitor();
 
   const shortcutRegistered = globalShortcut.register("CommandOrControl+Shift+V", () => {
