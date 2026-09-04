@@ -14,36 +14,50 @@ let clips = [];
 let lastClipboardText = "";
 let pollTimer = null;
 
+function ensureHistoryDir() {
+  if (!fs.existsSync(HISTORY_DIR)) {
+    fs.mkdirSync(HISTORY_DIR, { recursive: true });
+  }
+}
+
 function loadClips() {
   try {
-    if (!fs.existsSync(HISTORY_DIR)) {
-      fs.mkdirSync(HISTORY_DIR, { recursive: true });
-    }
+    ensureHistoryDir();
     if (fs.existsSync(HISTORY_FILE)) {
       const data = fs.readFileSync(HISTORY_FILE, "utf-8");
-      clips = JSON.parse(data);
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) {
+        clips = parsed.filter(
+          (c) => c && typeof c.id === "string" && typeof c.content === "string"
+        );
+      } else {
+        throw new Error("History data is not an array");
+      }
     }
   } catch (err) {
-    console.error("Failed to load clips:", err);
+    console.error("Failed to load clips:", err.message);
+    try {
+      if (fs.existsSync(HISTORY_FILE)) {
+        fs.copyFileSync(HISTORY_FILE, HISTORY_FILE + ".corrupt");
+      }
+    } catch (_) {}
     clips = [];
   }
 }
 
 function saveClips() {
   try {
-    if (!fs.existsSync(HISTORY_DIR)) {
-      fs.mkdirSync(HISTORY_DIR, { recursive: true });
-    }
-    fs.writeFileSync(HISTORY_FILE, JSON.stringify(clips, null, 2), "utf-8");
+    ensureHistoryDir();
+    const tmp = HISTORY_FILE + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(clips, null, 2), "utf-8");
+    fs.renameSync(tmp, HISTORY_FILE);
   } catch (err) {
-    console.error("Failed to save clips:", err);
+    console.error("Failed to save clips:", err.message);
   }
 }
 
 function addClip(text) {
-  if (clips.length > 0 && clips[0].content === text) {
-    return;
-  }
+  clips = clips.filter((c) => c.content !== text);
   const clip = {
     id: crypto.randomUUID(),
     content: text,
@@ -236,7 +250,9 @@ app.whenReady().then(() => {
     return;
   }
 
-  app.dock.hide();
+  if (process.platform === "darwin") {
+    app.dock.hide();
+  }
 
   const iconPath = path.join(__dirname, "assets", "icon.png");
   let icon;

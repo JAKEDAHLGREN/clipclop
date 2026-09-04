@@ -277,18 +277,3 @@ body {
 #clips-container::-webkit-scrollbar-thumb:hover {
   background: var(--border-hover);
 }
-
-@keyframes fadeSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.clip-item {
-  animation: fadeSlideIn 0.15s ease;
-}

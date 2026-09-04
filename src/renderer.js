@@ -94,7 +94,7 @@
 
       el.addEventListener('click', (e) => {
         if (e.target.closest('.clip-delete')) return;
-        copyClip(clip.id, el);
+        copyClip(clip.id);
       });
 
       el.querySelector('.clip-delete').addEventListener('click', (e) => {
@@ -119,17 +119,21 @@
     }
   }
 
-  async function copyClip(id, el) {
-    await window.clipclop.copyItem(id);
-    if (el) {
-      el.classList.add('copied');
-      setTimeout(() => el.classList.remove('copied'), 500);
+  async function copyClip(id) {
+    try {
+      await window.clipclop.copyItem(id);
+      showToast('Copied!');
+    } catch (_) {
+      showToast('Copy failed');
     }
-    showToast('Copied!');
   }
 
   async function deleteClip(id) {
-    await window.clipclop.deleteClip(id);
+    try {
+      await window.clipclop.deleteClip(id);
+    } catch (_) {
+      showToast('Delete failed');
+    }
   }
 
   async function loadClips() {
@@ -146,6 +150,7 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      clearTimeout(debounceTimer);
       if (searchInput.value) {
         searchInput.value = '';
         render();
@@ -169,15 +174,19 @@
       e.preventDefault();
       const clip = filteredClips[selectedIndex];
       if (clip) {
-        const el = items[selectedIndex];
-        copyClip(clip.id, el);
+        copyClip(clip.id);
       }
     }
   });
 
   clearAllBtn.addEventListener('click', async () => {
+    clearTimeout(debounceTimer);
     if (window.confirm('Clear all clips?')) {
-      await window.clipclop.clearAll();
+      try {
+        await window.clipclop.clearAll();
+      } catch (_) {
+        showToast('Clear failed');
+      }
     }
   });
 
