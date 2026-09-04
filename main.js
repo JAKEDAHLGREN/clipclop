@@ -126,6 +126,8 @@ function createPopover() {
   });
 
   popover.loadFile(path.join(__dirname, "src", "index.html"));
+  popover.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  popover.webContents.on("will-navigate", (e) => e.preventDefault());
 
   popover.on("blur", () => {
     if (popover && !popover.isDestroyed()) {
@@ -192,7 +194,8 @@ function hidePopover() {
 function setupIpc() {
   ipcMain.handle("copy-to-clipboard", (_event, args) => {
     try {
-      const { id } = args;
+      const id = args?.id;
+      if (typeof id !== "string") return { success: false };
       const clip = clips.find((c) => c.id === id);
       if (!clip) {
         return { success: false };
@@ -215,7 +218,8 @@ function setupIpc() {
 
   ipcMain.handle("delete-clip", (_event, args) => {
     try {
-      const { id } = args;
+      const id = args?.id;
+      if (typeof id !== "string") return { success: false };
       const idx = clips.findIndex((c) => c.id === id);
       if (idx === -1) {
         return { success: false };

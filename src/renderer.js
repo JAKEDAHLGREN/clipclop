@@ -38,12 +38,12 @@
     return div.innerHTML;
   }
 
-  function showToast(message) {
+  function showToast(message, type = 'success') {
     toastEl.textContent = message;
-    toastEl.classList.add('visible');
+    toastEl.className = 'visible' + (type === 'error' ? ' toast-error' : '');
     clearTimeout(showToast._timer);
     showToast._timer = setTimeout(() => {
-      toastEl.classList.remove('visible');
+      toastEl.className = '';
     }, 1200);
   }
 
@@ -124,7 +124,7 @@
       await window.clipclop.copyItem(id);
       showToast('Copied!');
     } catch (_) {
-      showToast('Copy failed');
+      showToast('Copy failed', 'error');
     }
   }
 
@@ -132,12 +132,16 @@
     try {
       await window.clipclop.deleteClip(id);
     } catch (_) {
-      showToast('Delete failed');
+      showToast('Delete failed', 'error');
     }
   }
 
   async function loadClips() {
-    allClips = await window.clipclop.getClips();
+    try {
+      allClips = await window.clipclop.getClips();
+    } catch (_) {
+      allClips = [];
+    }
     render();
   }
 
@@ -184,8 +188,9 @@
     if (window.confirm('Clear all clips?')) {
       try {
         await window.clipclop.clearAll();
+        searchInput.value = '';
       } catch (_) {
-        showToast('Clear failed');
+        showToast('Clear failed', 'error');
       }
     }
   });

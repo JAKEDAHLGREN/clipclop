@@ -261,6 +261,11 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
+.toast-error {
+  color: var(--danger);
+  border-color: rgba(224, 85, 85, 0.25);
+}
+
 #clips-container::-webkit-scrollbar {
   width: 5px;
 }
