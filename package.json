@@ -7,11 +7,42 @@
     "start": "electron .",
     "dev": "NODE_ENV=development electron .",
     "test": "node --test \"test/**/*.test.js\"",
-    "lint": "node --check main.js && node --check preload.js && node --check store.js && node --check src/renderer.js"
+    "lint": "node --check main.js && node --check preload.js && node --check store.js && node --check src/renderer.js",
+    "pack": "electron-builder --mac dir",
+    "dist": "electron-builder --mac"
   },
-  "author": "",
+  "author": "Jake Dahlgren",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^33.0.0"
+    "electron": "^33.0.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.jakesgierd.ClipClop",
+    "productName": "ClipClop",
+    "files": [
+      "main.js",
+      "preload.js",
+      "store.js",
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "npmRebuild": false,
+    "afterPack": "./after-pack.js",
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "title": "ClipClop"
+    }
   }
 }
