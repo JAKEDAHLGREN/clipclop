@@ -21,7 +21,7 @@ Everything stays on your machine. No cloud, no account, no telemetry.
 - **Delete & clear** — hover for an × to remove one item, or "Clear All" with confirmation
 - **Persistent history** — survives restarts, stored as plain JSON
 - **Global hotkey** — ⌘⇧V opens the manager right next to your mouse cursor, from any application
-- **Dark, modern UI** — card-based list with relative timestamps and copy/error toast feedback
+- **Dark, modern UI** — card-based list with live relative timestamps and error toasts
 
 ## Install
 
@@ -31,6 +31,15 @@ Everything stays on your machine. No cloud, no account, no telemetry.
 2. Open the DMG and drag **ClipClop.app** into your **Applications** folder.
 3. On first launch, right-click the app and choose **Open** (it's ad-hoc signed, not App Store signed).
 4. To start at login: right-click the tray icon → **Launch at Login**.
+
+### Updating an installed copy
+
+1. Right-click the tray icon → **Quit ClipClop** (also quit any `npm start` copy).
+2. Pull the latest code and run `npm run dist`.
+3. Open `dist/ClipClop-<version>-arm64.dmg` (double-click it in Finder, or `open dist/*.dmg`) and drag **ClipClop.app** into **Applications**, choosing **Replace**.
+4. Eject the disk image, then open ClipClop from Applications (right-click → **Open** the first time).
+
+Your history in `~/.clipclop/history.json` is kept across updates.
 
 ### Option 2 — Build from source
 
@@ -61,7 +70,7 @@ npm run dist   # outputs dist/ClipClop-1.0.0-arm64.dmg + .zip
 | Launch at login / quit | Right-click the tray icon |
 | Delete one item | Hover the item and click **×** |
 | Clear all history | Footer → **Clear All** (confirms first) |
-| Paste after copying | Switch to your target app and press ⌘V (manual paste — no auto-paste in v1) |
+| Paste after copying | Press ⌘V — focus is already back in the app you were using (no auto-paste yet) |
 
 ## Data & privacy
 
@@ -81,19 +90,29 @@ npm run pack  # build just the .app bundle (dist/mac-arm64/)
 npm run dist  # build the DMG + ZIP release artifacts
 ```
 
+Only one copy of ClipClop runs at a time, and the installed app and `npm start` count as the same app. Quit the installed copy (tray icon → **Quit ClipClop**) before running `npm start`, or the dev copy will exit immediately. **Launch at Login** is greyed out in the dev copy; it only works in the installed app.
+
 The 15 unit tests cover the `ClipboardStore` core: add/dedupe/re-copy-to-top, promote-on-pick, the 30-item eviction limit, persistence round-trips, corrupt-file recovery, and delete/clear mutations.
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `npm start` prints nothing and no icon appears | Another ClipClop is already running and took over. Quit it from its tray icon (or Activity Monitor), then run `npm start` again. |
+| ⌘⇧V doesn't do "Paste and Match Style" in other apps anymore | ClipClop registers ⌘⇧V globally, which overrides that shortcut in apps like Google Docs, Slack and Notes. A configurable hotkey is on the roadmap. |
+| The list doesn't open | Check the terminal (dev) for a "Failed to register global shortcut" warning — another app may already own ⌘⇧V. The tray icon still works. |
 
 ## Project structure
 
 ```
 .
-├── main.js               # Main process: clipboard poller, tray, popover, IPC, global hotkey
+├── main.js               # Main process: clipboard poller, tray + menu, popover positioning, IPC, global hotkey
 ├── store.js              # ClipboardStore: pure, testable history/persistence logic
 ├── preload.js            # contextBridge IPC bridge (window.clipclop API)
 ├── src/
 │   ├── index.html        # Popover UI markup
 │   ├── styles.css        # Dark theme
-│   └── renderer.js       # UI logic: search, keyboard nav, toasts
+│   └── renderer.js       # UI logic: search, keyboard nav, reset-on-open, toasts
 ├── assets/icon.png       # Tray icon
 ├── build/icon.icns       # App icon
 ├── test/store.test.js    # Unit tests (node:test)
