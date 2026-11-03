@@ -118,11 +118,6 @@ body {
   box-shadow: 0 0 0 1px rgba(108, 108, 240, 0.25);
 }
 
-.clip-item.copied {
-  background: rgba(68, 204, 119, 0.08);
-  border-color: var(--success);
-}
-
 .clip-content {
   font-size: 12.5px;
   color: var(--text-primary);

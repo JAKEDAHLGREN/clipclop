@@ -167,3 +167,49 @@ describe("ClipboardStore mutations", () => {
     assert.equal(store.findById("missing"), undefined);
   });
 });
+
+describe("ClipboardStore.promote", () => {
+  test("moves a lower clip to the top and refreshes its timestamp", () => {
+    let t = "2026-01-01T00:00:00.000Z";
+    const store = new ClipboardStore({
+      filePath,
+      now: () => t,
+      uuid: (() => { let i = 0; return () => `p-${++i}`; })(),
+      logger: { error: () => {} },
+    });
+    const a = store.add("a");
+    store.add("b");
+    store.add("c");
+    t = "2026-02-02T00:00:00.000Z";
+    const promoted = store.promote(a.id);
+    assert.equal(promoted.id, a.id); // same clip, same id
+    assert.deepEqual(store.getAll().map((c) => c.content), ["a", "c", "b"]);
+    assert.equal(store.getAll()[0].createdAt, "2026-02-02T00:00:00.000Z");
+    assert.equal(store.getAll().length, 3);
+  });
+
+  test("promoting the first clip keeps the order", () => {
+    const store = makeStore();
+    store.add("x");
+    const y = store.add("y");
+    store.promote(y.id);
+    assert.deepEqual(store.getAll().map((c) => c.content), ["y", "x"]);
+  });
+
+  test("returns null for an unknown id", () => {
+    const store = makeStore();
+    store.add("x");
+    assert.equal(store.promote("nope"), null);
+    assert.equal(store.getAll().length, 1);
+  });
+
+  test("persists the new order", () => {
+    const store = makeStore();
+    const a = store.add("a");
+    store.add("b");
+    store.promote(a.id);
+    const reloaded = makeStore();
+    reloaded.load();
+    assert.deepEqual(reloaded.getAll().map((c) => c.content), ["a", "b"]);
+  });
+});

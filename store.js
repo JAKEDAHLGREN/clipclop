@@ -70,6 +70,17 @@ class ClipboardStore {
     return clip;
   }
 
+  // Move an existing clip to the top (used when the user picks it from the list).
+  promote(id) {
+    const idx = this.clips.findIndex((c) => c.id === id);
+    if (idx === -1) return null;
+    const [clip] = this.clips.splice(idx, 1);
+    clip.createdAt = this.now();
+    this.clips.unshift(clip);
+    this.save();
+    return clip;
+  }
+
   findById(id) {
     return this.clips.find((c) => c.id === id);
   }

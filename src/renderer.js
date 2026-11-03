@@ -54,7 +54,7 @@
     } else {
       filteredClips = allClips.filter(c => c.content.toLowerCase().includes(query));
     }
-    selectedIndex = -1;
+    selectedIndex = filteredClips.length > 0 ? 0 : -1;
   }
 
   function updateEmptyState() {
@@ -85,6 +85,7 @@
       el.className = 'clip-item';
       el.dataset.id = clip.id;
       el.dataset.index = index;
+      el.dataset.createdAt = clip.createdAt;
 
       el.innerHTML = `
         <div class="clip-content">${escapeHtml(truncate(clip.content, 60))}</div>
@@ -107,6 +108,15 @@
 
     updateEmptyState();
     updateFooterCount();
+    setSelectedVisual(selectedIndex);
+  }
+
+  // Keep "2 min ago" labels current while the list stays open.
+  function refreshTimestamps() {
+    clipsContainer.querySelectorAll('.clip-item').forEach((el) => {
+      const ts = el.querySelector('.clip-timestamp');
+      if (ts && el.dataset.createdAt) ts.textContent = relativeTime(el.dataset.createdAt);
+    });
   }
 
   function setSelectedVisual(index) {
@@ -121,8 +131,8 @@
 
   async function copyClip(id) {
     try {
-      await window.clipclop.copyItem(id);
-      showToast('Copied!');
+      const result = await window.clipclop.copyItem(id);
+      if (!result || !result.success) showToast('Copy failed', 'error');
     } catch (_) {
       showToast('Copy failed', 'error');
     }
@@ -134,6 +144,8 @@
     } catch (_) {
       showToast('Delete failed', 'error');
     }
+    // The clicked × button is removed on re-render; put the cursor back in search.
+    searchInput.focus();
   }
 
   async function loadClips() {
@@ -158,6 +170,8 @@
       if (searchInput.value) {
         searchInput.value = '';
         render();
+      } else {
+        window.clipclop.hide();
       }
       return;
     }
@@ -200,13 +214,18 @@
     render();
   });
 
-  window.clipclop.onCopied(({ id }) => {
-    const el = clipsContainer.querySelector(`[data-id="${id}"]`);
-    if (el) {
-      el.classList.add('copied');
-      setTimeout(() => el.classList.remove('copied'), 500);
-    }
+  // Fresh state every time the window opens: empty search, first item selected,
+  // scrolled to the top, cursor in the search box.
+  window.clipclop.onShown((clips) => {
+    clearTimeout(debounceTimer);
+    allClips = clips;
+    searchInput.value = '';
+    render();
+    clipsContainer.scrollTop = 0;
+    searchInput.focus();
   });
+
+  setInterval(refreshTimestamps, 30000);
 
   loadClips();
 })();

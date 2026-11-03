@@ -10,16 +10,17 @@ Everything stays on your machine. No cloud, no account, no telemetry.
 
 ## Features
 
-- **Menu-bar app** — tiny tray icon, no Dock clutter (launches at login if added to Login Items)
+- **Menu-bar app** — tiny tray icon, no Dock clutter; right-click it for **Launch at Login** and **Quit**
 - **Automatic capture** — copies are detected within ~300 ms while running in the background
 - **Last 30 items** — configurable in code; oldest items are automatically evicted
-- **Re-copy aware** — copying the same text again moves it to the top instead of duplicating it
+- **Re-copy aware** — copying the same text again, or picking it from the list, moves it to the top instead of duplicating it
+- **Skips passwords** — copies that password managers mark as concealed or transient are never recorded
 - **Search-as-you-type** — case-insensitive, filters your history as you type
-- **Full keyboard workflow** — search, arrow-key navigation, Enter to copy, Esc to clear — no mouse required
-- **Restore to clipboard** — click (or Enter) any item; paste it anywhere with ⌘V
+- **Full keyboard workflow** — the first item is pre-selected; search, arrow keys, Enter to copy, Esc to clear or close — no mouse required
+- **Restore to clipboard** — click (or Enter) any item; the list closes and focus returns to your app, ready for ⌘V
 - **Delete & clear** — hover for an × to remove one item, or "Clear All" with confirmation
 - **Persistent history** — survives restarts, stored as plain JSON
-- **Global hotkey** — ⌘⇧V opens the manager from any application
+- **Global hotkey** — ⌘⇧V opens the manager right next to your mouse cursor, from any application
 - **Dark, modern UI** — card-based list with relative timestamps and copy/error toast feedback
 
 ## Install
@@ -29,7 +30,7 @@ Everything stays on your machine. No cloud, no account, no telemetry.
 1. Build the DMG once with `npm run dist` (produces `dist/ClipClop-1.0.0-arm64.dmg`).
 2. Open the DMG and drag **ClipClop.app** into your **Applications** folder.
 3. On first launch, right-click the app and choose **Open** (it's ad-hoc signed, not App Store signed).
-4. To start at login: System Settings → General → **Login Items** → add ClipClop.
+4. To start at login: right-click the tray icon → **Launch at Login**.
 
 ### Option 2 — Build from source
 
@@ -52,11 +53,12 @@ npm run dist   # outputs dist/ClipClop-1.0.0-arm64.dmg + .zip
 
 | Action | How |
 |---|---|
-| Open the manager | Click the clipboard tray icon, or press ⌘⇧V |
-| Search history | Start typing — results filter live |
-| Copy an item back to clipboard | Click it, or press Enter on the highlighted item |
+| Open the manager | Click the clipboard tray icon (opens below it), or press ⌘⇧V (opens beside the cursor) |
+| Search history | Start typing — results filter live, top match is pre-selected |
+| Copy an item back to clipboard | Click it, or press Enter on the highlighted item — it moves to the top and the list closes |
 | Navigate the list | ↑ / ↓ arrow keys |
-| Clear the search | Esc |
+| Clear the search / close | Esc clears the search; Esc again (or ⌘⇧V) closes the list |
+| Launch at login / quit | Right-click the tray icon |
 | Delete one item | Hover the item and click **×** |
 | Clear all history | Footer → **Clear All** (confirms first) |
 | Paste after copying | Switch to your target app and press ⌘V (manual paste — no auto-paste in v1) |
@@ -66,7 +68,8 @@ npm run dist   # outputs dist/ClipClop-1.0.0-arm64.dmg + .zip
 - History is stored locally at `~/.clipclop/history.json` (max 30 items).
 - Writes are **atomic** (temp file + rename) and corruption-safe — if the file is ever damaged, it's backed up to `history.json.corrupt` and the app recovers without crashing.
 - **Nothing ever leaves your Mac.** There are no network calls, no analytics, no login.
-- Clipboard contents may include sensitive data (passwords, tokens). Treat `~/.clipclop/history.json` as sensitive.
+- Copies marked as concealed/transient by password managers (the [nspasteboard.org](http://nspasteboard.org) convention used by 1Password, Bitwarden and others) are skipped and never written to disk.
+- Other clipboard contents may still include sensitive data (tokens, keys copied by hand). Treat `~/.clipclop/history.json` as sensitive.
 
 ## Development
 
@@ -78,7 +81,7 @@ npm run pack  # build just the .app bundle (dist/mac-arm64/)
 npm run dist  # build the DMG + ZIP release artifacts
 ```
 
-The 11 unit tests cover the `ClipboardStore` core: add/dedupe/re-copy-to-top, the 30-item eviction limit, persistence round-trips, corrupt-file recovery, and delete/clear mutations.
+The 15 unit tests cover the `ClipboardStore` core: add/dedupe/re-copy-to-top, promote-on-pick, the 30-item eviction limit, persistence round-trips, corrupt-file recovery, and delete/clear mutations.
 
 ## Project structure
 
