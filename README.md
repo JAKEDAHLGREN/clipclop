@@ -27,7 +27,7 @@ Everything stays on your machine. No cloud, no account, no telemetry.
 
 ### Option 1 — DMG (recommended)
 
-1. Build the DMG once with `npm run dist` (produces `dist/ClipClop-1.0.0-arm64.dmg`).
+1. Build the DMG once with `npm run dist` (produces `dist/ClipClop-1.1.0-arm64.dmg`).
 2. Open the DMG and drag **ClipClop.app** into your **Applications** folder.
 3. On first launch, right-click the app and choose **Open** (it's ad-hoc signed, not App Store signed).
 4. To start at login: right-click the tray icon → **Launch at Login**.
@@ -55,7 +55,7 @@ npm start
 To produce the distributable DMG/ZIP:
 
 ```sh
-npm run dist   # outputs dist/ClipClop-1.0.0-arm64.dmg + .zip
+npm run dist   # outputs dist/ClipClop-1.1.0-arm64.dmg + .zip
 ```
 
 ## Usage

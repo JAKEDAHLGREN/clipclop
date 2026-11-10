@@ -1,6 +1,6 @@
 {
   "name": "clipclop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A minimal clipboard history manager for macOS",
   "main": "main.js",
   "scripts": {
